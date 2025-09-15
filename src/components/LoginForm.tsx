@@ -14,17 +14,25 @@ export const LoginForm: React.FC = () => {
     setError('');
     setIsLoading(true);
 
+    try {
+      console.log('🔐 Submitting login form...');
     const success = await login(username, password);
     if (!success) {
-      setError('Invalid username or password');
+        setError('Invalid username or password. Please check your credentials and try again.');
     }
-    
-    setIsLoading(false);
+    } catch (error) {
+      console.error('❌ Login form error:', error);
+      setError('Login failed. Please try again.');
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   const quickLogin = (user: string, pass: string) => {
+    console.log(`🔐 Quick login for: ${user}`);
     setUsername(user);
     setPassword(pass);
+    setError(''); // Clear any existing errors
   };
 
   return (

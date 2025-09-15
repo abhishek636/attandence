@@ -21,29 +21,55 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
-    // Check for existing token on app load
-    const token = localStorage.getItem('auth_token');
-    if (token) {
-      const decoded = verifyToken(token);
-      if (decoded) {
-        setUser({
-          id: decoded.id,
-          username: decoded.username,
-          name: decoded.name,
-          role: decoded.role
-        });
-      } else {
-        localStorage.removeItem('auth_token');
-      }
-    }
-    setIsLoading(false);
+    initializeAuth();
   }, []);
+
+  const initializeAuth = async () => {
+    try {
+      console.log('🔐 Initializing authentication...');
+      
+      // Check for existing token on app load
+      const token = localStorage.getItem('timetracker_auth_token');
+      if (token) {
+        console.log('🔐 Found existing token, verifying...');
+        const decoded = verifyToken(token);
+        if (decoded) {
+          console.log('✅ Token valid, user logged in:', decoded.username);
+          setUser({
+            id: decoded.id,
+            username: decoded.username,
+            name: decoded.name,
+            role: decoded.role
+          });
+        } else {
+          console.log('❌ Token invalid, removing...');
+          localStorage.removeItem('timetracker_auth_token');
+        }
+      } else {
+        console.log('🔐 No existing token found');
+      }
+    } catch (error) {
+      console.error('❌ Auth initialization error:', error);
+      localStorage.removeItem('timetracker_auth_token');
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
   const login = async (username: string, password: string): Promise<boolean> => {
     try {
-      const result = await authenticateUser(username, password);
+      console.log(`🔐 Login attempt for user: ${username}`);
+      
+      if (!username.trim() || !password.trim()) {
+        console.log('❌ Login failed: Empty credentials');
+        return false;
+      }
+
+      const result = await authenticateUser(username.trim(), password);
+      
       if (result) {
-        localStorage.setItem('auth_token', result.token);
+        console.log('✅ Login successful, storing token...');
+        localStorage.setItem('timetracker_auth_token', result.token);
         setUser({
           id: result.user.id,
           username: result.user.username,
@@ -51,17 +77,21 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
           role: result.user.role
         });
         return true;
+      } else {
+        console.log('❌ Login failed: Invalid credentials');
+        return false;
       }
-      return false;
     } catch (error) {
-      console.error('Login error:', error);
+      console.error('❌ Login error:', error);
       return false;
     }
   };
 
   const logout = () => {
-    localStorage.removeItem('auth_token');
+    console.log('🔐 Logging out user...');
+    localStorage.removeItem('timetracker_auth_token');
     setUser(null);
+    console.log('✅ User logged out successfully');
   };
 
   return (
