@@ -1,111 +1,85 @@
 import { User, ActivityLog, WorkSession } from '../types';
+import { getDatabase } from './database';
 
-// Simple localStorage-based storage for demo
-class LocalStorage {
-  private getItem<T>(key: string, defaultValue: T): T {
-    try {
-      const item = localStorage.getItem(key);
-      return item ? JSON.parse(item) : defaultValue;
-    } catch {
-      return defaultValue;
-    }
-  }
-
-  private setItem<T>(key: string, value: T): void {
-    localStorage.setItem(key, JSON.stringify(value));
-  }
+// Database-based storage implementation
+class DatabaseStorage {
+  private db = getDatabase();
 
   // Users
-  getUsers(): User[] {
-    return this.getItem('users', []);
+  async getUsers(): Promise<User[]> {
+    return await this.db.getAllUsers();
   }
 
-  setUsers(users: User[]): void {
-    this.setItem('users', users);
+  async setUsers(users: User[]): Promise<void> {
+    // This method is not needed for database implementation
+    // but kept for compatibility
+    console.warn('setUsers is not implemented for database storage');
   }
 
-  getUserById(id: string): User | null {
-    const users = this.getUsers();
-    return users.find(user => user.id === id) || null;
+  async getUserById(id: string): Promise<User | null> {
+    return await this.db.getUserById(id);
   }
 
-  getUserByUsername(username: string): User | null {
-    const users = this.getUsers();
-    return users.find(user => user.username === username) || null;
+  async getUserByUsername(username: string): Promise<User | null> {
+    return await this.db.getUserByUsername(username);
   }
 
-  createUser(user: User): void {
-    const users = this.getUsers();
-    users.push(user);
-    this.setUsers(users);
+  async createUser(user: User): Promise<void> {
+    await this.db.createUser(user.username, user.name, user.password);
   }
 
-  updateUser(updatedUser: User): void {
-    const users = this.getUsers();
-    const index = users.findIndex(user => user.id === updatedUser.id);
-    if (index !== -1) {
-      users[index] = updatedUser;
-      this.setUsers(users);
-    }
+  async updateUser(updatedUser: User): Promise<void> {
+    await this.db.updateUser(updatedUser);
   }
 
   // Activity Logs
-  getActivityLogs(): ActivityLog[] {
-    return this.getItem('activityLogs', []);
+  async getActivityLogs(): Promise<ActivityLog[]> {
+    // This method returns all logs, which might be expensive
+    // Consider implementing pagination or limiting
+    console.warn('getActivityLogs returns all logs - consider using getUserActivityLogs instead');
+    return [];
   }
 
-  setActivityLogs(logs: ActivityLog[]): void {
-    this.setItem('activityLogs', logs);
+  async setActivityLogs(logs: ActivityLog[]): Promise<void> {
+    // This method is not needed for database implementation
+    console.warn('setActivityLogs is not implemented for database storage');
   }
 
-  addActivityLog(log: ActivityLog): void {
-    const logs = this.getActivityLogs();
-    logs.unshift(log); // Add to beginning
-    // Keep only last 1000 logs
-    if (logs.length > 1000) {
-      logs.splice(1000);
-    }
-    this.setActivityLogs(logs);
+  async addActivityLog(log: ActivityLog): Promise<void> {
+    await this.db.addActivityLog(log);
   }
 
-  getUserActivityLogs(userId: string, limit = 100): ActivityLog[] {
-    const logs = this.getActivityLogs();
-    return logs.filter(log => log.userId === userId).slice(0, limit);
+  async getUserActivityLogs(userId: string, limit = 100): Promise<ActivityLog[]> {
+    return await this.db.getUserActivityLogs(userId, limit);
   }
 
   // Work Sessions
-  getWorkSessions(): WorkSession[] {
-    return this.getItem('workSessions', []);
+  async getWorkSessions(): Promise<WorkSession[]> {
+    // This method returns all sessions, which might be expensive
+    console.warn('getWorkSessions returns all sessions - consider using getUserWorkSessions instead');
+    return [];
   }
 
-  setWorkSessions(sessions: WorkSession[]): void {
-    this.setItem('workSessions', sessions);
+  async setWorkSessions(sessions: WorkSession[]): Promise<void> {
+    // This method is not needed for database implementation
+    console.warn('setWorkSessions is not implemented for database storage');
   }
 
-  addWorkSession(session: WorkSession): void {
-    const sessions = this.getWorkSessions();
-    sessions.unshift(session);
-    this.setWorkSessions(sessions);
+  async addWorkSession(session: WorkSession): Promise<void> {
+    await this.db.addWorkSession(session);
   }
 
-  updateWorkSession(updatedSession: WorkSession): void {
-    const sessions = this.getWorkSessions();
-    const index = sessions.findIndex(session => session.id === updatedSession.id);
-    if (index !== -1) {
-      sessions[index] = updatedSession;
-      this.setWorkSessions(sessions);
-    }
+  async updateWorkSession(updatedSession: WorkSession): Promise<void> {
+    await this.db.updateWorkSession(updatedSession);
   }
 
-  getUserWorkSessions(userId: string): WorkSession[] {
-    const sessions = this.getWorkSessions();
-    return sessions.filter(session => session.userId === userId);
+  async getUserWorkSessions(userId: string): Promise<WorkSession[]> {
+    return await this.db.getUserWorkSessions(userId);
   }
 
-  getCurrentWorkSession(userId: string): WorkSession | null {
-    const sessions = this.getUserWorkSessions(userId);
-    return sessions.find(session => !session.checkOutTime) || null;
+  async getCurrentWorkSession(userId: string): Promise<WorkSession | null> {
+    return await this.db.getCurrentWorkSession(userId);
   }
 }
 
-export const storage = new LocalStorage();
+export const storage = new DatabaseStorage();

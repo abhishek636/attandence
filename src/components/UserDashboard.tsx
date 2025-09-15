@@ -24,17 +24,17 @@ export const UserDashboard: React.FC = () => {
 
   useEffect(() => {
     if (user) {
-      loadUserData();
+      loadUserData().catch(console.error);
       const interval = setInterval(loadUserData, 30000); // Refresh every 30 seconds
       return () => clearInterval(interval);
     }
   }, [user]);
 
-  const loadUserData = () => {
+  const loadUserData = async () => {
     if (!user) return;
     
-    const logs = storage.getUserActivityLogs(user.id, 50);
-    const sessions = storage.getUserWorkSessions(user.id);
+    const logs = await storage.getUserActivityLogs(user.id, 50);
+    const sessions = await storage.getUserWorkSessions(user.id);
     
     setActivityLogs(logs);
     setWorkSessions(sessions);

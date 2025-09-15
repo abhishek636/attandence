@@ -30,16 +30,16 @@ export const useActivityTracker = () => {
   const activeTimeIntervalRef = useRef<NodeJS.Timeout>();
   const IDLE_THRESHOLD = 5 * 60 * 1000; // 5 minutes in milliseconds
 
-  const recordActivity = () => {
+  const recordActivity = async () => {
     if (!user || !activityState.isActive) return;
 
     const now = new Date();
     
     // Update user's last activity
-    const currentUser = storage.getUserById(user.id);
+    const currentUser = await storage.getUserById(user.id);
     if (currentUser) {
       currentUser.lastActivity = now.toISOString();
-      storage.updateUser(currentUser);
+      await storage.updateUser(currentUser);
     }
     
     // Log activity
@@ -50,7 +50,7 @@ export const useActivityTracker = () => {
       timestamp: now.toISOString(),
       metadata: { type: 'simulated_activity' }
     };
-    storage.addActivityLog(activityLog);
+    await storage.addActivityLog(activityLog);
 
     setActivityState(prev => ({
       ...prev,
@@ -69,7 +69,7 @@ export const useActivityTracker = () => {
     }, IDLE_THRESHOLD);
   };
 
-  const handleIdleStart = () => {
+  const handleIdleStart = async () => {
     if (!user) return;
 
     const idleLog: ActivityLog = {
@@ -78,7 +78,7 @@ export const useActivityTracker = () => {
       type: 'idle-start',
       timestamp: new Date().toISOString()
     };
-    storage.addActivityLog(idleLog);
+    await storage.addActivityLog(idleLog);
 
     setActivityState(prev => ({
       ...prev,
@@ -91,7 +91,7 @@ export const useActivityTracker = () => {
     }, 1000);
   };
 
-  const handleIdleEnd = () => {
+  const handleIdleEnd = async () => {
     if (!user) return;
 
     const idleEndLog: ActivityLog = {
@@ -100,7 +100,7 @@ export const useActivityTracker = () => {
       type: 'idle-end',
       timestamp: new Date().toISOString()
     };
-    storage.addActivityLog(idleEndLog);
+    await storage.addActivityLog(idleEndLog);
 
     setActivityState(prev => ({
       ...prev,
@@ -109,7 +109,7 @@ export const useActivityTracker = () => {
     }));
   };
 
-  const checkIn = () => {
+  const checkIn = async () => {
     if (!user) return;
 
     const now = new Date();
@@ -126,14 +126,14 @@ export const useActivityTracker = () => {
       activityCount: 0,
       date
     };
-    storage.addWorkSession(workSession);
+    await storage.addWorkSession(workSession);
 
     // Update user status
-    const currentUser = storage.getUserById(user.id);
+    const currentUser = await storage.getUserById(user.id);
     if (currentUser) {
       currentUser.isCheckedIn = true;
       currentUser.lastActivity = now.toISOString();
-      storage.updateUser(currentUser);
+      await storage.updateUser(currentUser);
     }
 
     // Log check-in
@@ -143,7 +143,7 @@ export const useActivityTracker = () => {
       type: 'check-in',
       timestamp: now.toISOString()
     };
-    storage.addActivityLog(checkInLog);
+    await storage.addActivityLog(checkInLog);
 
     setActivityState(prev => ({
       ...prev,
@@ -160,28 +160,28 @@ export const useActivityTracker = () => {
     startActiveTimeCounter();
   };
 
-  const checkOut = () => {
+  const checkOut = async () => {
     if (!user || !activityState.sessionId) return;
 
     const now = new Date();
     
     // End work session
-    const currentSession = storage.getCurrentWorkSession(user.id);
+    const currentSession = await storage.getCurrentWorkSession(user.id);
     if (currentSession) {
       currentSession.checkOutTime = now.toISOString();
       currentSession.totalActiveTime = activityState.totalActiveTime;
       currentSession.idleTime = activityState.idleTime;
       currentSession.activityCount = activityState.activityCount;
-      storage.updateWorkSession(currentSession);
+      await storage.updateWorkSession(currentSession);
     }
 
     // Update user status
-    const currentUser = storage.getUserById(user.id);
+    const currentUser = await storage.getUserById(user.id);
     if (currentUser) {
       currentUser.isCheckedIn = false;
       currentUser.lastActivity = now.toISOString();
       currentUser.totalWorkingTime += activityState.totalActiveTime;
-      storage.updateUser(currentUser);
+      await storage.updateUser(currentUser);
     }
 
     // Log check-out
@@ -191,7 +191,7 @@ export const useActivityTracker = () => {
       type: 'check-out',
       timestamp: now.toISOString()
     };
-    storage.addActivityLog(checkOutLog);
+    await storage.addActivityLog(checkOutLog);
 
     setActivityState(prev => ({
       ...prev,
@@ -217,7 +217,7 @@ export const useActivityTracker = () => {
       const delay = Math.random() * 90000 + 30000; // 30-120 seconds
       activityIntervalRef.current = setTimeout(() => {
         if (activityState.isActive) {
-          recordActivity();
+          recordActivity().catch(console.error);
           scheduleNextActivity();
         }
       }, delay);
@@ -258,8 +258,10 @@ export const useActivityTracker = () => {
 
   // Check for existing session on mount
   useEffect(() => {
-    if (user) {
-      const currentSession = storage.getCurrentWorkSession(user.id);
+    const checkExistingSession = async () => {
+      if (!user) return;
+      
+      const currentSession = await storage.getCurrentWorkSession(user.id);
       if (currentSession) {
         const now = new Date();
         const checkInTime = new Date(currentSession.checkInTime);
@@ -276,6 +278,10 @@ export const useActivityTracker = () => {
         startActivitySimulation();
         startActiveTimeCounter();
       }
+    };
+
+    if (user) {
+      checkExistingSession().catch(console.error);
     }
   }, [user]);
 

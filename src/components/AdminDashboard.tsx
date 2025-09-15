@@ -33,24 +33,24 @@ export const AdminDashboard: React.FC = () => {
   const [success, setSuccess] = useState('');
 
   useEffect(() => {
-    loadUsers();
+    loadUsers().catch(console.error);
     const interval = setInterval(loadUsers, 10000); // Refresh every 10 seconds
     return () => clearInterval(interval);
   }, []);
 
-  const loadUsers = () => {
-    const allUsers = storage.getUsers().filter(u => u.role === 'user'); // Only show regular users
+  const loadUsers = async () => {
+    const allUsers = (await storage.getUsers()).filter(u => u.role === 'user'); // Only show regular users
     setUsers(allUsers);
   };
 
-  const handleCreateUser = (e: React.FormEvent) => {
+  const handleCreateUser = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
     setSuccess('');
 
     try {
       // Check if username already exists
-      const existingUser = storage.getUserByUsername(newUser.username);
+      const existingUser = await storage.getUserByUsername(newUser.username);
       if (existingUser) {
         setError('Username already exists');
         return;
@@ -68,12 +68,12 @@ export const AdminDashboard: React.FC = () => {
         totalWorkingTime: 0
       };
 
-      storage.createUser(user);
+      await storage.createUser(user);
       
       setSuccess('User created successfully!');
       setNewUser({ username: '', name: '', password: '' });
       setShowCreateForm(false);
-      loadUsers();
+      await loadUsers();
       
       setTimeout(() => setSuccess(''), 3000);
     } catch (error) {

@@ -29,8 +29,8 @@ export const verifyToken = (token: string): TokenPayload | null => {
   }
 };
 
-export const authenticateUser = (username: string, password: string): { token: string; user: TokenPayload } | null => {
-  const user = storage.getUserByUsername(username);
+export const authenticateUser = async (username: string, password: string): Promise<{ token: string; user: TokenPayload } | null> => {
+  const user = await storage.getUserByUsername(username);
   
   if (!user) {
     return null;

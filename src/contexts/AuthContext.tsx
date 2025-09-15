@@ -1,7 +1,6 @@
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import { AuthContextType, AuthUser } from '../types';
 import { authenticateUser, verifyToken } from '../utils/auth';
-import { initializeSeedData } from '../utils/seedData';
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
@@ -22,9 +21,6 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
-    // Initialize seed data
-    initializeSeedData();
-    
     // Check for existing token on app load
     const token = localStorage.getItem('auth_token');
     if (token) {
@@ -45,7 +41,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
 
   const login = async (username: string, password: string): Promise<boolean> => {
     try {
-      const result = authenticateUser(username, password);
+      const result = await authenticateUser(username, password);
       if (result) {
         localStorage.setItem('auth_token', result.token);
         setUser({
